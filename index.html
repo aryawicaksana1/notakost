@@ -193,26 +193,19 @@
         window.addEventListener('keydown', (e) => {
             if (!state.activeInput) return;
 
-            // Jika Enter ditekan
+            // Jika Enter ditekan, proses login
             if (e.key === 'Enter') {
+                e.preventDefault(); // Mencegah aksi default browser
                 processLogin();
                 return;
             }
+            // Jika Tab ditekan, pindah input
             if (e.key === 'Tab') {
                 e.preventDefault();
                 state.activeInput = state.activeInput === 'username' ? 'password' : 'username';
                 hiddenInput.value = state[state.activeInput];
+                hiddenInput.focus(); // Jaga fokus untuk keyboard
                 return;
-            }
-
-            // Keyboard desktop yang tidak tertangkap oleh hidden input
-            // (Kadang event keydown lebih cepat/diandalkan untuk desktop)
-            if (e.key === 'Backspace') {
-                state[state.activeInput] = state[state.activeInput].slice(0, -1);
-                hiddenInput.value = state[state.activeInput];
-            } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
-                state[state.activeInput] += e.key;
-                hiddenInput.value = state[state.activeInput];
             }
         });
 

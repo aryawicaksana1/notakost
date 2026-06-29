@@ -44,10 +44,8 @@
 
         // Mengatur resolusi canvas agar tajam (menangani devicePixelRatio)
         function resize() {
-            // Mengatur resolusi canvas agar tajam di layar HiDPI (Retina)
-            const dpr = window.devicePixelRatio || 1;
-            canvas.width = window.innerWidth * dpr;
-            canvas.height = window.innerHeight * dpr;
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
         }
         window.addEventListener('resize', resize);
         resize();
@@ -119,12 +117,9 @@
                 clientY = evt.touches[0].clientY;
             }
 
-            // Kalibrasi koordinat dengan devicePixelRatio untuk akurasi di layar HiDPI
-            const dpr = window.devicePixelRatio || 1;
-
             return {
-                x: (clientX - rect.left) * dpr,
-                y: (clientY - rect.top) * dpr
+                x: clientX - rect.left,
+                y: clientY - rect.top
             };
         }
 

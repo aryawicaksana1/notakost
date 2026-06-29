@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Canvas Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden; /* Mencegah scrolling */
+            background-color: #0f172a; /* Warna cadangan */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+        /* Input tersembunyi ini hanya digunakan untuk memancing keyboard muncul di perangkat mobile */
+        #hidden-input {
+            position: absolute;
+            opacity: 0;
+            top: -1000px;
+            left: -1000px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Canvas utama tempat semua UI digambar -->
+    <canvas id="gameCanvas"></canvas>
+    <input type="text" id="hidden-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const hiddenInput = document.getElementById('hidden-input');
+
+        // Mengatur resolusi canvas agar tajam (menangani devicePixelRatio)
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Database Simulasi
+        const VALID_USERNAME = "bosacarya";
+        const VALID_PASSWORD = "bos123";
+
+        const state = {
+            username: "",
+            password: "",
+            activeInput: null, // 'username' atau 'password'
+            cursorVisible: true,
+            lastCursorToggle: 0,
+            hoveredButton: false,
+            message: "",
+            messageType: "",
+            messageTimer: 0,
+            mouseX: 0,
+            mouseY: 0,
+            particles: []
+        };
+
+        // Konfigurasi tata letak UI (Card & Inputs)
+        const ui = {
+            cardWidth: 380,
+            cardHeight: 460,
+            inputWidth: 300,
+            inputHeight: 50,
+            btnHeight: 50,
+            radius: 15
+        };
+
+        // Inisialisasi partikel untuk background
+        for (let i = 0; i < 15; i++) {
+            state.particles.push({
+                x: Math.random() * window.innerWidth,
+                y: Math.random() * window.innerHeight,
+                radius: Math.random() * 80 + 40,
+                vx: (Math.random() - 0.5) * 1.5,
+                vy: (Math.random() - 0.5) * 1.5,
+                color: `rgba(${Math.floor(Math.random()*100 + 50)}, ${Math.floor(Math.random()*100 + 100)}, 255, 0.15)`
+            });
+        }
+
+        // Fungsi pembantu untuk menggambar kotak dengan sudut melengkung
+        function roundRect(ctx, x, y, width, height, radius) {
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+        }
+
+        function getMousePos(evt) {
+            const rect = canvas.getBoundingClientRect();
+            let clientX = evt.clientX;
+            let clientY = evt.clientY;
+            
+            // Handle touch events
+            if (evt.touches && evt.touches.length > 0) {
+                clientX = evt.touches[0].clientX;
+                clientY = evt.touches[0].clientY;
+            }
+
+            return {
+                x: clientX - rect.left,
+                y: clientY - rect.top
+            };
+        }
+
+        function handlePointerMove(e) {
+            const pos = getMousePos(e);
+            state.mouseX = pos.x;
+            state.mouseY = pos.y;
+        }
+
+        function handlePointerDown(e) {
+            const pos = getMousePos(e);
+            
+            // Hitung koordinat elemen relatif terhadap tengah layar
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+            const startY = cy - 80;
+
+            // Hitbox Username
+            if (pos.x > cx - ui.inputWidth/2 && pos.x < cx + ui.inputWidth/2 &&
+                pos.y > startY && pos.y < startY + ui.inputHeight) {
+                state.activeInput = 'username';
+                hiddenInput.value = state.username;
+                hiddenInput.type = "text";
+                hiddenInput.focus();
+                return;
+            }
+
+            // Hitbox Password
+            if (pos.x > cx - ui.inputWidth/2 && pos.x < cx + ui.inputWidth/2 &&
+                pos.y > startY + 80 && pos.y < startY + 80 + ui.inputHeight) {
+                state.activeInput = 'password';
+                hiddenInput.value = state.password;
+                hiddenInput.type = "password"; // Mencegah auto-capitalize di keyboard HP
+                hiddenInput.focus();
+                return;
+            }
+
+            // Hitbox Tombol Login
+            if (pos.x > cx - ui.inputWidth/2 && pos.x < cx + ui.inputWidth/2 &&
+                pos.y > startY + 170 && pos.y < startY + 170 + ui.btnHeight) {
+                processLogin();
+                return;
+            }
+
+            // Klik di luar area input
+            state.activeInput = null;
+            hiddenInput.blur();
+        }
+
+        window.addEventListener('mousemove', handlePointerMove);
+        window.addEventListener('mousedown', handlePointerDown);
+        window.addEventListener('touchstart', (e) => {
+            handlePointerMove(e);
+            handlePointerDown(e);
+        }, {passive: false});
+
+        
+        // Sinkronisasi input tersembunyi (untuk mobile keyboard)
+        hiddenInput.addEventListener('input', (e) => {
+            if (state.activeInput) {
+                state[state.activeInput] = e.target.value;
+            }
+        });
+
+        // Menangani keyboard desktop
+        window.addEventListener('keydown', (e) => {
+            if (!state.activeInput) return;
+
+            // Jika Enter ditekan
+            if (e.key === 'Enter') {
+                processLogin();
+                return;
+            }
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                state.activeInput = state.activeInput === 'username' ? 'password' : 'username';
+                hiddenInput.value = state[state.activeInput];
+                return;
+            }
+
+            // Keyboard desktop yang tidak tertangkap oleh hidden input
+            // (Kadang event keydown lebih cepat/diandalkan untuk desktop)
+            if (e.key === 'Backspace') {
+                state[state.activeInput] = state[state.activeInput].slice(0, -1);
+                hiddenInput.value = state[state.activeInput];
+            } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
+                state[state.activeInput] += e.key;
+                hiddenInput.value = state[state.activeInput];
+            }
+        });
+
+        function processLogin() {
+            if (state.username === VALID_USERNAME && state.password === VALID_PASSWORD) {
+                state.message = "Login Berhasil! Memuat data...";
+                state.messageType = "success";
+                // Setelah pesan sukses tampil, alihkan halaman
+                setTimeout(() => {
+                    // Arahkan ke file index.html di direktori parent
+                    window.location.href = '../index.html';
+                }, 1500); // Tunggu 1.5 detik untuk memberi waktu user membaca pesan
+            } else {
+                state.message = "Username atau password salah!";
+                state.messageType = "error";
+            }
+            state.messageTimer = 180; // Tampilkan selama ~3 detik (60fps * 3)
+            state.activeInput = null;
+            hiddenInput.blur();
+        }
+
+        function draw() {
+            // Bersihkan frame
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. Gambar Latar Belakang Gradien Utama
+            const bgGradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+            bgGradient.addColorStop(0, '#0f172a'); // Gelap biru
+            bgGradient.addColorStop(1, '#1e1b4b'); // Gelap ungu
+            ctx.fillStyle = bgGradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 2. Animasi Partikel Latar Belakang
+            state.particles.forEach(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                // Pantulkan dari tepi
+                if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+                if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.fill();
+            });
+
+            // 3. Persiapan Hitungan Posisi Tengah
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+            
+            // 4. Menggambar Kartu Glassmorphism
+            ctx.save();
+            roundRect(ctx, cx - ui.cardWidth/2, cy - ui.cardHeight/2, ui.cardWidth, ui.cardHeight, ui.radius);
+            // Warna kaca
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
+            ctx.fill();
+            // Border tipis
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+            ctx.stroke();
+            ctx.restore();
+
+            // 5. Menggambar Judul
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 28px "Segoe UI", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText("Login Acarya", cx, cy - 140);
+
+            const startY = cy - 80;
+
+            // 6. Menggambar Input Username
+            drawInputBox(cx, startY, "Username", state.username, state.activeInput === 'username', false);
+
+            // 7. Menggambar Input Password
+            drawInputBox(cx, startY + 80, "Password", state.password, state.activeInput === 'password', true);
+
+            // 8. Cek status hover tombol
+            const btnY = startY + 170;
+            state.hoveredButton = (state.mouseX > cx - ui.inputWidth/2 && state.mouseX < cx + ui.inputWidth/2 &&
+                                   state.mouseY > btnY && state.mouseY < btnY + ui.btnHeight);
+
+            // 9. Menggambar Tombol Login
+            ctx.beginPath();
+            roundRect(ctx, cx - ui.inputWidth/2, btnY, ui.inputWidth, ui.btnHeight, 10);
+            ctx.fillStyle = state.hoveredButton ? '#ffffff' : 'rgba(255,255,255,0.9)';
+            ctx.fill();
+            
+            ctx.fillStyle = '#0f172a';
+            ctx.font = 'bold 18px "Segoe UI", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText("Login", cx, btnY + ui.btnHeight/2);
+
+            // 10. Menggambar Pesan (Notifikasi)
+            if (state.messageTimer > 0) {
+                ctx.fillStyle = state.messageType === 'success' ? '#4ade80' : '#f87171';
+                ctx.font = '14px "Segoe UI", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(state.message, cx, btnY + ui.btnHeight + 30);
+                state.messageTimer--;
+            }
+        }
+
+        function drawInputBox(cx, y, label, text, isActive, isPassword) {
+            // Label
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.font = '14px "Segoe UI", sans-serif';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'bottom';
+            ctx.fillText(label, cx - ui.inputWidth/2, y - 8);
+
+            // Kotak Input
+            ctx.beginPath();
+            roundRect(ctx, cx - ui.inputWidth/2, y, ui.inputWidth, ui.inputHeight, 10);
+            ctx.fillStyle = isActive ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.05)';
+            ctx.fill();
+            
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = isActive ? 'rgba(255, 255, 255, 0.6)' : 'rgba(255, 255, 255, 0.2)';
+            ctx.stroke();
+
+            // Render Teks
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '16px "Segoe UI", sans-serif';
+            ctx.textBaseline = 'middle';
+            
+            // Masking text jika itu password
+            const displayText = isPassword ? '*'.repeat(text.length) : text;
+            
+            const textX = cx - ui.inputWidth/2 + 15;
+            const textY = y + ui.inputHeight/2;
+            
+            if (displayText === "" && !isActive) {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.fillText(`Masukkan ${label.toLowerCase()}`, textX, textY);
+            } else {
+                ctx.fillText(displayText, textX, textY);
+            }
+
+            // Render Kursor Kedip jika aktif
+            if (isActive && state.cursorVisible) {
+                const textWidth = ctx.measureText(displayText).width;
+                ctx.beginPath();
+                ctx.moveTo(textX + textWidth + 2, textY - 8);
+                ctx.lineTo(textX + textWidth + 2, textY + 8);
+                ctx.strokeStyle = '#ffffff';
+                ctx.stroke();
+            }
+        }
+
+        function update(timestamp) {
+            // Toggle kursor berkedip setiap 500ms
+            if (timestamp - state.lastCursorToggle > 500) {
+                state.cursorVisible = !state.cursorVisible;
+                state.lastCursorToggle = timestamp;
+            }
+
+            // Panggil fungsi render
+            draw();
+
+            // Minta frame berikutnya
+            requestAnimationFrame(update);
+        }
+
+        // Mulai animasi
+        requestAnimationFrame(update);
+    </script>
+</body>
+</html>

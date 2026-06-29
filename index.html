@@ -28,8 +28,8 @@
 
     <!-- Header Navbar -->
     <nav class="bg-green-600 text-white p-4 shadow-md">
-        <div class="max-w-7xl mx-auto flex items-center gap-2">
-            <img src="gambar/logo kost hijau.png" alt="Logo" class="h-8 w-auto">
+        <div class="max-w-7xl mx-auto flex flex-col items-center gap-2 text-center">
+            <img src="gambar/logo kost hijau.png" alt="Logo" class="h-10 w-auto">
             <h1 class="text-xl font-bold">Pembuat Nota Online acarya kost singaraja</h1>
         </div>
     </nav>
@@ -39,38 +39,26 @@
         <!-- Panel Kiri: Form Input -->
         <div class="lg:w-1/2 bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6 lg:mb-0">
             <h2 class="text-lg font-semibold border-b pb-2 mb-4 text-gray-800">Detail Nota</h2>
-            
+
             <!-- Info Toko & Pelanggan -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div class="md:col-span-2">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">URL Logo Toko (Opsional)</label>
-                    <input type="text" id="storeLogoUrl" class="w-full border border-gray-300 rounded-md p-2 focus:ring-green-500 focus:border-green-500 outline-none" value="" placeholder="Ketik atau pilih path logo" oninput="updatePreview()" list="logo-suggestions">
-                    <datalist id="logo-suggestions">
-                        <option value="gambar/logo kost hijau.png"></option>
-                    </datalist>
-                </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Nama Toko</label>
-                    <input type="text" id="storeName" class="w-full border border-gray-300 rounded-md p-2 focus:ring-green-500 focus:border-green-500 outline-none" value="" placeholder="Ketik atau pilih nama toko" oninput="updatePreview()" list="store-name-suggestions">
-                    <datalist id="store-name-suggestions">
-                        <option value="acarya 1"></option>
-                        <option value="acarya 2"></option>
-                    </datalist>
+                    <select id="storeName" onchange="selectStore(this.value)" class="w-full border border-gray-300 rounded-md p-2 focus:ring-green-500 focus:border-green-500 outline-none bg-white">
+                        <!-- Opsi toko akan dirender di sini oleh JavaScript -->
+                    </select>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Alamat Toko</label>
-                    <input type="text" id="storeAddress" class="w-full border border-gray-300 rounded-md p-2 focus:ring-green-500 focus:border-green-500 outline-none" value="" placeholder="Ketik atau pilih alamat" oninput="updatePreview()" list="address-suggestions">
-                    <datalist id="address-suggestions">
-                        <option value="Jl. Pulau Timor, desa padang, keling, Kabupaten Buleleng, Bali 81115"></option>
-                        <option value="Perumahan Banyuning lestari blok K1, Banyuning, Kec. Buleleng, Singaraja, Bali 81119"></option>
-                    </datalist>
+                    <select id="storeAddress" class="w-full border border-gray-300 rounded-md p-2 focus:ring-green-500 focus:border-green-500 outline-none bg-white" onchange="updatePreview()">
+                        <!-- Opsi alamat akan dirender di sini oleh JavaScript -->
+                    </select>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">No. Telp / WA</label>
-                    <input type="text" id="storePhone" class="w-full border border-gray-300 rounded-md p-2 focus:ring-green-500 focus:border-green-500 outline-none" value="" placeholder="Ketik atau pilih no. telp" oninput="updatePreview()" list="phone-suggestions">
-                    <datalist id="phone-suggestions">
-                        <option value="+62 878-6726-1660"></option>
-                    </datalist>
+                    <select id="storePhone" class="w-full border border-gray-300 rounded-md p-2 focus:ring-green-500 focus:border-green-500 outline-none bg-white" onchange="updatePreview()">
+                        <!-- Opsi telepon akan dirender di sini oleh JavaScript -->
+                    </select>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">No. Nota</label>
@@ -130,7 +118,7 @@
                 <div id="receiptContent" class="receipt-paper w-full max-w-md p-8 text-black">
                     <!-- Header Nota -->
                     <div class="text-center mb-6">
-                        <img id="prevStoreLogo" src="" alt="Logo Toko" class="mx-auto mb-4 h-20 w-auto hidden" onerror="this.classList.add('hidden');">
+                        <img src="gambar/logo kost hijau.png" alt="Logo Toko" class="mx-auto mb-4 h-20 w-auto" onerror="this.style.display='none'">
                         <h1 id="prevStoreName" class="text-2xl font-bold uppercase tracking-wider mb-1">NAMA TOKO</h1>
                         <p id="prevStoreAddress" class="text-sm">-</p>
                         <p id="prevStorePhone" class="text-sm">Telp: -</p>
@@ -214,12 +202,32 @@
         // Inisialisasi ikon Lucide
         lucide.createIcons();
 
+        // Data Toko
+        const stores = [
+            {
+                name: 'acarya 1',
+                address: 'Jl. Pulau Timor, desa padang, keling, Kabupaten Buleleng, Bali 81115',
+                phone: '+62 878-6726-1660'
+            },
+            {
+                name: 'acarya 2',
+                address: 'Perumahan Banyuning lestari blok K1, Banyuning, Kec. Buleleng, Singaraja, Bali 81119',
+                phone: '+62 878-6726-1660'
+            }
+        ];
+
+        // Master Data Pembayaran
+        const availablePaymentItems = [
+            { name: 'sewa kamar', price: 200000 },
+            { name: 'listrik', price: 150000 },
+            { name: 'air', price: 100000 },
+            { name: 'sampah', price: 150000 },
+        ];
+
         // State Barang
         let items = [
-            { id: 1, name: 'air', price: 100000 },
-            { id: 2, name: 'listrik', price: 150000 },
-            { id: 3, name: 'sewa kamar', price: 200000 },
-            { id: 4, name: 'sampah', price: 150000 },
+            // Dimulai dengan satu item default
+            { id: Date.now(), name: 'sewa kamar', price: 200000 }
         ];
 
         // Format Uang Rupiah
@@ -238,9 +246,6 @@
             const options = { day: 'numeric', month: 'short', year: 'numeric' };
             return new Date(dateString).toLocaleDateString('id-ID', options);
         };
-
-        // Set tanggal hari ini sebagai default
-        document.getElementById('receiptDate').valueAsDate = new Date();
 
         /**
          * Fungsi inti untuk membuat Short Unique ID (Mirip NanoID)
@@ -271,74 +276,158 @@
             updatePreview(); // Panggil updatePreview agar pratinjau ikut berubah
         }
 
-        // Fungsi Tambah Barang
+        // Fungsi untuk render opsi-opsi di dropdown toko
+        function renderStoreOptions() {
+            const select = document.getElementById('storeName');
+            select.innerHTML = '';
+            stores.forEach((store, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.innerText = store.name;
+                select.appendChild(option);
+            });
+        }
+
+        // Fungsi untuk render saran alamat di datalist
+        function renderAddressSuggestions() {
+            const select = document.getElementById('storeAddress');
+            select.innerHTML = '';
+            stores.forEach(store => {
+                const option = document.createElement('option');
+                option.value = store.address;
+                option.innerText = store.address;
+                select.appendChild(option);
+            });
+        }
+
+        // Fungsi untuk render saran nomor telepon
+        function renderPhoneSuggestions() {
+            const select = document.getElementById('storePhone');
+            select.innerHTML = '';
+            stores.forEach(store => {
+                const option = document.createElement('option');
+                option.value = store.phone;
+                option.innerText = store.phone;
+                select.appendChild(option);
+            });
+        }
+
+        // Fungsi untuk memilih toko dan mengisi form
+        function selectStore(index) {
+            // Ambil data toko berdasarkan index yang dipilih
+            const store = stores[index];
+
+            // Isi nilai input fields
+            document.getElementById('storeName').value = index;
+            document.getElementById('storeAddress').value = store.address;
+            document.getElementById('storePhone').value = store.phone;
+
+            updatePreview(); // Update pratinjau nota
+        }
+
+        // Helper function to build the HTML for a single item row
+        function buildItemHtml(item) {
+            const optionsHtml = availablePaymentItems.map(paymentItem => 
+                `<option value="${paymentItem.name}" ${item.name === paymentItem.name ? 'selected' : ''}>
+                    ${paymentItem.name.charAt(0).toUpperCase() + paymentItem.name.slice(1)}
+                </option>`
+            ).join('');
+
+            return `
+                <div id="item-row-${item.id}" class="flex gap-2 items-start bg-gray-50 p-3 rounded-lg border border-gray-100">
+                    <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <div>
+                            <select class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-green-500 focus:border-green-500 outline-none bg-white" onchange="updateItem(${item.id}, this.value)">
+                                ${optionsHtml}
+                            </select>
+                        </div>
+                        <div>
+                            <input type="number" id="price-${item.id}" readonly placeholder="Harga" class="w-full bg-gray-100 border border-gray-300 rounded-md p-2 text-sm focus:outline-none cursor-not-allowed" value="${item.price}">
+                        </div>
+                    </div>
+                    <button onclick="removeItem(${item.id})" class="p-2 text-red-500 hover:bg-red-50 rounded-md transition" title="Hapus Barang">
+                        <i data-lucide="trash-2" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            `;
+        }
+
+        // Fungsi Tambah Barang (dioptimalkan untuk tidak render ulang semua)
         function addItem() {
             const newItem = {
                 id: Date.now(),
-                name: '',
-                price: 0
+                name: availablePaymentItems[0].name,
+                price: availablePaymentItems[0].price
             };
             items.push(newItem);
-            renderItemsForm();
-            updatePreview();
+
+            const container = document.getElementById('itemsContainer');
+            const itemHtml = buildItemHtml(newItem);
+            container.insertAdjacentHTML('beforeend', itemHtml);
+            
+            // Ambil elemen baris yang baru ditambahkan
+            const newRowElement = document.getElementById(`item-row-${newItem.id}`);
+            if (newRowElement) {
+                // Panggil createIcons hanya pada elemen baru untuk efisiensi
+                // dan untuk menghindari bug render ulang pada tombol lain.
+                lucide.createIcons({ root: newRowElement });
+            }
+
+            updatePreview(); // Update pratinjau setelah item ditambahkan
         }
 
-        // Fungsi Hapus Barang
+        // Fungsi Hapus Barang (dioptimalkan untuk hanya menghapus elemen terkait)
         function removeItem(id) {
-            items = items.filter(item => item.id !== id);
-            renderItemsForm();
-            updatePreview();
-        }
+            const itemElement = document.getElementById(`item-row-${id}`);
+            if (itemElement) {
+                itemElement.remove();
+            }
 
-        // Fungsi Update State Barang
-        function updateItemData(id, field, value) {
-            const item = items.find(i => i.id === id);
-            if (item) {
-                item[field] = field === 'name' ? value : Number(value);
+            items = items.filter(item => item.id !== id);
+
+            if (items.length === 0) {
+                addItem();
+            } else {
                 updatePreview();
             }
         }
 
-        // Render Form Input Barang
+        // Fungsi untuk update item ketika pilihan di dropdown berubah
+        function updateItem(id, selectedName) {
+            const itemToUpdate = items.find(i => i.id === id);
+            const selectedMasterItem = availablePaymentItems.find(i => i.name === selectedName);
+
+            if (itemToUpdate && selectedMasterItem) {
+                itemToUpdate.name = selectedMasterItem.name;
+                itemToUpdate.price = selectedMasterItem.price;
+                // Tidak perlu render ulang semua, cukup update input harga yang relevan
+                const priceInput = document.getElementById(`price-${id}`);
+                if (priceInput) {
+                    priceInput.value = selectedMasterItem.price;
+                }
+                updatePreview(); // Update pratinjau
+            }
+        }
+
+        // Render Form Input Barang (hanya untuk inisialisasi awal)
         function renderItemsForm() {
             const container = document.getElementById('itemsContainer');
             container.innerHTML = '';
 
-            items.forEach((item, index) => {
-                const itemHtml = `
-                    <div class="flex gap-2 items-start bg-gray-50 p-3 rounded-lg border border-gray-100">
-                        <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-2">
-                            <div>
-                            <input type="text" placeholder="Nama Barang" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-green-500 focus:border-green-500 outline-none" value="${item.name}" oninput="updateItemData(${item.id}, 'name', this.value)">
-                            </div>
-                            <div>
-                            <input type="number" placeholder="Harga" min="0" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-green-500 focus:border-green-500 outline-none" value="${item.price}" oninput="updateItemData(${item.id}, 'price', this.value)">
-                            </div>
-                        </div>
-                        <button onclick="removeItem(${item.id})" class="p-2 text-red-500 hover:bg-red-50 rounded-md transition" title="Hapus Barang">
-                            <i data-lucide="trash-2" class="w-5 h-5"></i>
-                        </button>
-                    </div>
-                `;
-                container.insertAdjacentHTML('beforeend', itemHtml);
+            items.forEach(item => {
+                container.insertAdjacentHTML('beforeend', buildItemHtml(item));
             });
-            lucide.createIcons(); // Re-init icons for newly added buttons
+            
+            // Panggil createIcons hanya pada container item untuk efisiensi
+            lucide.createIcons({ root: container });
         }
 
         // Fungsi Update Tampilan Preview Kanan
         function updatePreview() {
-            // Update Logo
-            const logoUrl = document.getElementById('storeLogoUrl').value;
-            const logoPreview = document.getElementById('prevStoreLogo');
-            if (logoUrl) {
-                logoPreview.src = logoUrl;
-                logoPreview.classList.remove('hidden');
-            } else {
-                logoPreview.classList.add('hidden');
-            }
-
             // Update Header Info
-            document.getElementById('prevStoreName').innerText = document.getElementById('storeName').value || 'NAMA TOKO';
+            const storeNameSelect = document.getElementById('storeName');
+            const selectedStoreText = storeNameSelect.options[storeNameSelect.selectedIndex]?.text;
+            document.getElementById('prevStoreName').innerText = selectedStoreText || 'NAMA TOKO';
             document.getElementById('prevStoreAddress').innerText = document.getElementById('storeAddress').value || '-';
             document.getElementById('prevStorePhone').innerText = `Telp: ${document.getElementById('storePhone').value || '-'}`;
             document.getElementById('prevReceiptNumber').innerText = document.getElementById('receiptNumber').value || '-';
@@ -416,10 +505,26 @@
             html2pdf().set(opt).from(element).save();
         }
 
-        // Inisialisasi awal
-        renderItemsForm();
-        buatNoNotaBaru(); // Generate No. Nota pertama kali dan panggil updatePreview()
+        // Fungsi untuk menjalankan semua setup awal saat halaman dimuat
+        function inisialisasiAplikasi() {
+            // Render opsi-opsi dropdown toko
+            renderStoreOptions();
+            // Render saran untuk alamat
+            renderAddressSuggestions();
+            // Render saran untuk telepon
+            renderPhoneSuggestions();
+            // Pilih toko pertama sebagai default dan isi form
+            selectStore(0);
+            // Set tanggal hari ini sebagai default pada input tanggal
+            document.getElementById('receiptDate').valueAsDate = new Date();
+            // Render form untuk item-item yang sudah ada di awal
+            renderItemsForm();
+            // Buat nomor nota pertama kali (ini juga akan memanggil updatePreview)
+            buatNoNotaBaru();
+        }
 
+        // Inisialisasi awal
+        inisialisasiAplikasi();
     </script>
 </body>
 </html>

@@ -172,6 +172,7 @@
         window.addEventListener('mousemove', handlePointerMove);
         window.addEventListener('mousedown', handlePointerDown);
         window.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // Mencegah perilaku default browser (seperti scroll)
             handlePointerMove(e);
             handlePointerDown(e);
         }, {passive: false});
@@ -201,6 +202,16 @@
                 hiddenInput.value = state[state.activeInput];
                 hiddenInput.focus(); // Jaga fokus untuk keyboard
                 return;
+            }
+
+            // Keyboard desktop yang tidak tertangkap oleh hidden input
+            // (Kadang event keydown lebih cepat/diandalkan untuk desktop)
+            if (e.key === 'Backspace') {
+                state[state.activeInput] = state[state.activeInput].slice(0, -1);
+                hiddenInput.value = state[state.activeInput];
+            } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
+                state[state.activeInput] += e.key;
+                hiddenInput.value = state[state.activeInput];
             }
         });
 

@@ -43,7 +43,7 @@
             <!-- Info Toko & Pelanggan -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Nama Toko</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Nama Kost </label>
                     <select id="storeName" onchange="selectStore(this.value)" class="w-full border border-gray-300 rounded-md p-2 focus:ring-green-500 focus:border-green-500 outline-none bg-white">
                         <!-- Opsi toko akan dirender di sini oleh JavaScript -->
                     </select>
@@ -106,7 +106,7 @@
             <!-- Catatan -->
             <div class="mt-4">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Catatan Tambahan (Opsional)</label>
-                <textarea id="notes" rows="2" class="w-full border border-gray-300 rounded-md p-2 focus:ring-green-500 focus:border-green-500 outline-none" placeholder="Barang yang sudah dibeli tidak dapat ditukar..." oninput="updatePreview()">Terima kasih telah membayar .</textarea>
+                <textarea id="notes" rows="2" class="w-full border border-gray-300 rounded-md p-2 focus:ring-green-500 focus:border-green-500 outline-none" placeholder="isi keterangan " oninput="updatePreview()">Email (invoice) ini dapat Anda cetak sebagai bukti transaksi pada Acarya kost Singaraja </textarea>
             </div>
         </div>
 
@@ -216,14 +216,6 @@
             }
         ];
 
-        // Master Data Pembayaran
-        const availablePaymentItems = [
-            { name: 'sewa kamar', price: 200000 },
-            { name: 'listrik', price: 150000 },
-            { name: 'air', price: 100000 },
-            { name: 'sampah', price: 150000 },
-        ];
-
         // State Barang
         let items = [
             // Dimulai dengan satu item default
@@ -327,22 +319,27 @@
 
         // Helper function to build the HTML for a single item row
         function buildItemHtml(item) {
-            const optionsHtml = availablePaymentItems.map(paymentItem => 
-                `<option value="${paymentItem.name}" ${item.name === paymentItem.name ? 'selected' : ''}>
-                    ${paymentItem.name.charAt(0).toUpperCase() + paymentItem.name.slice(1)}
-                </option>`
-            ).join('');
-
             return `
                 <div id="item-row-${item.id}" class="flex gap-2 items-start bg-gray-50 p-3 rounded-lg border border-gray-100">
                     <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-2">
                         <div>
-                            <select class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-green-500 focus:border-green-500 outline-none bg-white" onchange="updateItem(${item.id}, this.value)">
-                                ${optionsHtml}
-                            </select>
+                            <input 
+                                type="text"
+                                placeholder="Nama Item"
+                                class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-green-500 focus:border-green-500 outline-none"
+                                value="${item.name}"
+                                oninput="updateItemName(${item.id}, this.value)"
+                            >
                         </div>
                         <div>
-                            <input type="number" id="price-${item.id}" readonly placeholder="Harga" class="w-full bg-gray-100 border border-gray-300 rounded-md p-2 text-sm focus:outline-none cursor-not-allowed" value="${item.price}">
+                            <input 
+                                type="number" 
+                                id="price-${item.id}" 
+                                placeholder="Harga" 
+                                class="w-full border border-gray-300 rounded-md p-2 text-sm outline-none focus:ring-green-500 focus:border-green-500" 
+                                value="${item.price}" 
+                                oninput="updateItemPrice(${item.id}, this.value)"
+                            >
                         </div>
                     </div>
                     <button onclick="removeItem(${item.id})" class="p-2 text-red-500 hover:bg-red-50 rounded-md transition" title="Hapus Barang">
@@ -356,8 +353,8 @@
         function addItem() {
             const newItem = {
                 id: Date.now(),
-                name: availablePaymentItems[0].name,
-                price: availablePaymentItems[0].price
+                name: '',
+                price: 0
             };
             items.push(newItem);
 
@@ -392,20 +389,21 @@
             }
         }
 
-        // Fungsi untuk update item ketika pilihan di dropdown berubah
-        function updateItem(id, selectedName) {
+        // Fungsi untuk update nama item secara manual
+        function updateItemName(id, newName) {
             const itemToUpdate = items.find(i => i.id === id);
-            const selectedMasterItem = availablePaymentItems.find(i => i.name === selectedName);
-
-            if (itemToUpdate && selectedMasterItem) {
-                itemToUpdate.name = selectedMasterItem.name;
-                itemToUpdate.price = selectedMasterItem.price;
-                // Tidak perlu render ulang semua, cukup update input harga yang relevan
-                const priceInput = document.getElementById(`price-${id}`);
-                if (priceInput) {
-                    priceInput.value = selectedMasterItem.price;
-                }
+            if (itemToUpdate) {
+                itemToUpdate.name = newName;
                 updatePreview(); // Update pratinjau
+            }
+        }
+
+        // Fungsi untuk update harga item secara manual (khusus untuk 'sewa kamar')
+        function updateItemPrice(id, newPrice) {
+            const itemToUpdate = items.find(i => i.id === id);
+            if (itemToUpdate) {
+                itemToUpdate.price = Number(newPrice) || 0;
+                updatePreview();
             }
         }
 
@@ -446,7 +444,7 @@
                 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td class="py-1 break-words">${item.name || 'Barang'}</td>
+                    <td class="py-1 break-words">${item.name || 'item'}</td>
                     <td class="py-1 text-right">${formatRupiah(totalItem)}</td>
                 `;
                 tbody.appendChild(tr);

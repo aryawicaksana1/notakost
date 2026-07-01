@@ -142,12 +142,12 @@
             if (pos.x > cx - inputWidth/2 && pos.x < cx + inputWidth/2 &&
                 pos.y > startY && pos.y < startY + ui.inputHeight) {
                 
-                // PERBAIKAN: Hanya update nilai jika kolom belum aktif
-                // Mencegah kursor melompat ke awal kata di HP
                 if (state.activeInput !== 'username') {
                     state.activeInput = 'username';
                     hiddenInput.type = "text";
                     hiddenInput.value = state.username;
+                    // TAMBAHAN: Geser kursor ke paling akhir
+                    hiddenInput.selectionStart = hiddenInput.selectionEnd = hiddenInput.value.length;
                 }
                 hiddenInput.focus();
                 return;
@@ -160,10 +160,13 @@
                     state.activeInput = 'password';
                     hiddenInput.type = "password"; 
                     hiddenInput.value = state.password;
+                    // TAMBAHAN: Geser kursor ke paling akhir
+                    hiddenInput.selectionStart = hiddenInput.selectionEnd = hiddenInput.value.length;
                 }
                 hiddenInput.focus();
                 return;
             }
+            // ... sisa kodenya tetap sama
 
             if (pos.x > cx - inputWidth/2 && pos.x < cx + inputWidth/2 &&
                 pos.y > startY + 170 && pos.y < startY + 170 + ui.btnHeight) {

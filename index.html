@@ -2,362 +2,529 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Canvas Login Acarya</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generator Nota & Struk PDF</title>
+    <!-- Tailwind CSS untuk styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- html2pdf untuk konversi ke PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        /* Styling khusus untuk cetakan nota agar terlihat klasik/monospaced */
+        .nota-preview {
+            font-family: 'Courier New', Courier, monospace;
+            background-image: radial-gradient(#e5e7eb 1px, transparent 1px);
+            background-size: 20px 20px;
         }
-        body, html {
-            width: 100%;
-            height: 100%;
-            overflow: hidden; 
-            background-color: #0f172a; 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        canvas {
-            display: block;
-            width: 100vw;
-            height: 100vh;
-        }
-        /* PERBAIKAN: Jangan taruh di -1000px agar browser mobile mau fokus */
-        #hidden-input {
-            position: absolute;
-            opacity: 0;
-            top: 50%;
-            left: 50%;
-            width: 1px;
-            height: 1px;
-            z-index: -1;
+        .receipt-paper {
+            background-color: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            border: 1px solid #e5e7eb;
         }
     </style>
 </head>
-<body>
+<body class="bg-gray-50 min-h-screen">
 
-    <canvas id="gameCanvas"></canvas>
-    <input type="text" id="hidden-input" 
-       autocomplete="off" 
-       autocorrect="off" 
-       autocapitalize="off" 
-       spellcheck="false" 
-       style="position: absolute; opacity: 0; top: 0; left: 0; pointer-events: none;">
+    <!-- Header Navbar -->
+    <nav class="bg-green-600 text-white p-4 shadow-md">
+        <div class="max-w-7xl mx-auto flex flex-col items-center gap-2 text-center">
+            <img src="gambar/logo kost hijau.png" alt="Logo" class="h-10 w-auto">
+            <h1 class="text-xl font-bold">Pembuat Nota Online acarya kost singaraja</h1>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto p-4 md:p-6 lg:flex gap-6 items-start">
+        
+        <!-- Panel Kiri: Form Input -->
+        <div class="lg:w-1/2 bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6 lg:mb-0">
+            <h2 class="text-lg font-semibold border-b pb-2 mb-4 text-gray-800">Detail Nota</h2>
+
+            <!-- Info Toko & Pelanggan -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Nama Toko</label>
+                    <select id="storeName" onchange="selectStore(this.value)" class="w-full border border-gray-300 rounded-md p-2 focus:ring-green-500 focus:border-green-500 outline-none bg-white">
+                        <!-- Opsi toko akan dirender di sini oleh JavaScript -->
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Alamat Toko</label>
+                    <select id="storeAddress" class="w-full border border-gray-300 rounded-md p-2 focus:ring-green-500 focus:border-green-500 outline-none bg-white" onchange="updatePreview()">
+                        <!-- Opsi alamat akan dirender di sini oleh JavaScript -->
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">No. Telp / WA</label>
+                    <select id="storePhone" class="w-full border border-gray-300 rounded-md p-2 focus:ring-green-500 focus:border-green-500 outline-none bg-white" onchange="updatePreview()">
+                        <!-- Opsi telepon akan dirender di sini oleh JavaScript -->
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">No. Nota</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="receiptNumber" readonly class="w-full bg-gray-100 border border-gray-300 rounded-md p-2 font-mono focus:outline-none cursor-not-allowed">
+                        <button onclick="buatNoNotaBaru()" class="text-sm bg-green-50 text-green-700 hover:bg-green-100 px-3 py-1 rounded-md flex items-center gap-1 transition whitespace-nowrap">
+                            <i data-lucide="refresh-cw" class="w-4 h-4"></i> Ulang
+                        </button>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal</label>
+                    <input type="date" id="receiptDate" class="w-full border border-gray-300 rounded-md p-2 focus:ring-green-500 focus:border-green-500 outline-none" onchange="updatePreview()">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Nama Pelanggan</label>
+                    <input type="text" id="customerName" class="w-full border border-gray-300 rounded-md p-2 focus:ring-green-500 focus:border-green-500 outline-none" value="Bpk. Budi" oninput="updatePreview()">
+                </div>
+            </div>
+
+            <!-- Daftar Barang -->
+            <h2 class="text-lg font-semibold border-b pb-2 mb-4 text-gray-800 flex justify-between items-center">
+                Daftar Pembayaran
+                <button onclick="addItem()" class="text-sm bg-green-50 text-green-600 hover:bg-green-100 px-3 py-1 rounded-md flex items-center gap-1 transition">
+                    <i data-lucide="plus" class="w-4 h-4"></i> Tambah
+                </button>
+            </h2>
+            
+            <div id="itemsContainer" class="space-y-3 mb-6">
+                <!-- Item baris akan dirender di sini oleh JavaScript -->
+            </div>
+
+            <!-- Diskon & Pajak -->
+            <div class="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Diskon (Rp)</label>
+                    <input type="number" id="discount" class="w-full border border-gray-300 rounded-md p-2 focus:ring-green-500 focus:border-green-500 outline-none" value="0" oninput="updatePreview()">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Pajak / PPN (%)</label>
+                    <input type="number" id="tax" class="w-full border border-gray-300 rounded-md p-2 focus:ring-green-500 focus:border-green-500 outline-none" value="0" oninput="updatePreview()">
+                </div>
+            </div>
+            
+            <!-- Catatan -->
+            <div class="mt-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Catatan Tambahan (Opsional)</label>
+                <textarea id="notes" rows="2" class="w-full border border-gray-300 rounded-md p-2 focus:ring-green-500 focus:border-green-500 outline-none" placeholder="Barang yang sudah dibeli tidak dapat ditukar..." oninput="updatePreview()">Terima kasih telah membayar .</textarea>
+            </div>
+        </div>
+
+        <!-- Panel Kanan: Preview & Download -->
+        <div class="lg:w-1/2 sticky top-6">
+            <div class="bg-gray-100 p-6 rounded-xl border border-gray-200 nota-preview mb-4 flex justify-center overflow-x-auto">
+                
+                <!-- Area yang akan di-convert ke PDF -->
+                <div id="receiptContent" class="receipt-paper w-full max-w-md p-8 text-black">
+                    <!-- Header Nota -->
+                    <div class="text-center mb-6">
+                        <img src="gambar/logo kost hijau.png" alt="Logo Toko" class="mx-auto mb-4 h-20 w-auto" onerror="this.style.display='none'">
+                        <h1 id="prevStoreName" class="text-2xl font-bold uppercase tracking-wider mb-1">NAMA TOKO</h1>
+                        <p id="prevStoreAddress" class="text-sm">-</p>
+                        <p id="prevStorePhone" class="text-sm">Telp: -</p>
+                    </div>
+                    
+                    <div class="border-b-2 border-dashed border-gray-400 mb-4"></div>
+
+                    <!-- Info Transaksi -->
+                    <div class="flex justify-between text-sm mb-4">
+                        <div>
+                            <p>No   : <span id="prevReceiptNumber">-</span></p>
+                            <p>Tgl  : <span id="prevReceiptDate">-</span></p>
+                        </div>
+                        <div class="text-right">
+                            <p>Yth. <span id="prevCustomerName">Bpk. Budi</span></p>
+                        </div>
+                    </div>
+
+                    <div class="border-b-2 border-dashed border-gray-400 mb-4"></div>
+
+                    <!-- Tabel Barang -->
+                    <table class="w-full text-sm mb-4">
+                        <thead>
+                            <tr class="text-left">
+                                <th class="pb-2 font-semibold">Item</th>
+                                <th class="pb-2 font-semibold text-right">Harga</th>
+                            </tr>
+                        </thead>
+                        <tbody id="prevItemsList">
+                            <!-- Items di-render via JS -->
+                        </tbody>
+                    </table>
+
+                    <div class="border-b-2 border-dashed border-gray-400 mb-4"></div>
+
+                    <!-- Perhitungan Total -->
+                    <div class="text-sm space-y-1">
+                        <div class="flex justify-between">
+                            <span>Subtotal</span>
+                            <span id="prevSubtotal">Rp 0</span>
+                        </div>
+                        <div class="flex justify-between text-red-600 hidden" id="prevDiscountContainer">
+                            <span>Diskon</span>
+                            <span id="prevDiscount">- Rp 0</span>
+                        </div>
+                        <div class="flex justify-between hidden" id="prevTaxContainer">
+                            <span>PPN (<span id="prevTaxRate">0</span>%)</span>
+                            <span id="prevTaxAmount">Rp 0</span>
+                        </div>
+                        <div class="flex justify-between font-bold text-base mt-2 pt-2 border-t border-gray-300">
+                            <span>TOTAL</span>
+                            <span id="prevGrandTotal">Rp 0</span>
+                        </div>
+                    </div>
+
+                    <div class="border-b-2 border-dashed border-gray-400 my-4"></div>
+
+                    <!-- Footer / Catatan -->
+                    <div class="text-center text-sm">
+                        <p id="prevNotes" class="italic mb-4 text-gray-600">Terima kasih telah membayar.</p>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Tombol Aksi -->
+            <div class="flex gap-4">
+                <button onclick="downloadPDF()" class="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg font-medium flex items-center justify-center gap-2 transition shadow-md">
+                    <i data-lucide="download" class="w-5 h-5"></i>
+                    Download PDF
+                </button>
+                <button onclick="window.print()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 py-3 px-4 rounded-lg font-medium flex items-center justify-center gap-2 transition shadow-md">
+                    <i data-lucide="printer" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <p class="text-xs text-gray-500 mt-3 text-center">Format PDF dioptimalkan untuk ukuran kertas A5.</p>
+        </div>
+    </div>
 
     <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const hiddenInput = document.getElementById('hidden-input');
+        // Inisialisasi ikon Lucide
+        lucide.createIcons();
 
-        function resize() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+        // Data Toko
+        const stores = [
+            {
+                name: 'acarya 1',
+                address: 'Jl. Pulau Timor, desa padang, keling, Kabupaten Buleleng, Bali 81115',
+                phone: '+62 878-6726-1660'
+            },
+            {
+                name: 'acarya 2',
+                address: 'Perumahan Banyuning lestari blok K1, Banyuning, Kec. Buleleng, Singaraja, Bali 81119',
+                phone: '+62 878-6726-1660'
+            }
+        ];
+
+        // Master Data Pembayaran
+        const availablePaymentItems = [
+            { name: 'sewa kamar', price: 200000 },
+            { name: 'listrik', price: 150000 },
+            { name: 'air', price: 100000 },
+            { name: 'sampah', price: 150000 },
+        ];
+
+        // State Barang
+        let items = [
+            // Dimulai dengan satu item default
+            { id: Date.now(), name: 'sewa kamar', price: 200000 }
+        ];
+
+        // Format Uang Rupiah
+        const formatRupiah = (number) => {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(number);
+        };
+
+        // Format Tanggal
+        const formatDate = (dateString) => {
+            if (!dateString) return '-';
+            const options = { day: 'numeric', month: 'short', year: 'numeric' };
+            return new Date(dateString).toLocaleDateString('id-ID', options);
+        };
+
+        /**
+         * Fungsi inti untuk membuat Short Unique ID (Mirip NanoID)
+         * Menggunakan karakter yang aman dan mudah dibaca manusia
+         */
+        function generateShortId(length = 8) {
+            // Huruf & Angka yang mudah dibaca (Dihilangkan: 0, O, 1, I, L)
+            const alphabet = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
+            let result = '';
+            
+            // Menggunakan Crypto API untuk keamanan acak tingkat tinggi
+            const randomValues = new Uint32Array(length);
+            window.crypto.getRandomValues(randomValues);
+            
+            for (let i = 0; i < length; i++) {
+                // Mengambil karakter acak dari alphabet
+                result += alphabet[randomValues[i] % alphabet.length];
+            }
+            return result;
         }
-        window.addEventListener('resize', resize);
-        resize();
 
-        const VALID_USERNAME = "bosacarya";
-        const VALID_PASSWORD = "bos123";
+        /**
+         * Fungsi untuk menaruh ID yang dibuat ke dalam input field "No Nota"
+         */
+        function buatNoNotaBaru() {
+            const prefix = "INV-";
+            document.getElementById('receiptNumber').value = prefix + generateShortId(8);
+            updatePreview(); // Panggil updatePreview agar pratinjau ikut berubah
+        }
 
-        const state = {
-            username: "",
-            password: "",
-            activeInput: null, 
-            cursorVisible: true,
-            lastCursorToggle: 0,
-            hoveredButton: false,
-            message: "",
-            messageType: "",
-            messageTimer: 0,
-            mouseX: 0,
-            mouseY: 0,
-            uiOffset: 0, 
-            particles: []
-        };
-
-        const ui = {
-            cardWidth: 380,
-            cardHeight: 460,
-            inputWidth: 300,
-            inputHeight: 50,
-            btnHeight: 50,
-            radius: 15
-        };
-
-        for (let i = 0; i < 15; i++) {
-            state.particles.push({
-                x: Math.random() * window.innerWidth,
-                y: Math.random() * window.innerHeight,
-                radius: Math.random() * 80 + 40,
-                vx: (Math.random() - 0.5) * 1.5,
-                vy: (Math.random() - 0.5) * 1.5,
-                color: `rgba(${Math.floor(Math.random()*100 + 50)}, ${Math.floor(Math.random()*100 + 100)}, 255, 0.15)`
+        // Fungsi untuk render opsi-opsi di dropdown toko
+        function renderStoreOptions() {
+            const select = document.getElementById('storeName');
+            select.innerHTML = '';
+            stores.forEach((store, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.innerText = store.name;
+                select.appendChild(option);
             });
         }
 
-        function roundRect(ctx, x, y, width, height, radius) {
-            ctx.beginPath();
-            ctx.moveTo(x + radius, y);
-            ctx.lineTo(x + width - radius, y);
-            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-            ctx.lineTo(x + width, y + height - radius);
-            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-            ctx.lineTo(x + radius, y + height);
-            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-            ctx.lineTo(x, y + radius);
-            ctx.quadraticCurveTo(x, y, x + radius, y);
-            ctx.closePath();
+        // Fungsi untuk render saran alamat di datalist
+        function renderAddressSuggestions() {
+            const select = document.getElementById('storeAddress');
+            select.innerHTML = '';
+            stores.forEach(store => {
+                const option = document.createElement('option');
+                option.value = store.address;
+                option.innerText = store.address;
+                select.appendChild(option);
+            });
         }
 
-        function getMousePos(evt) {
-            const rect = canvas.getBoundingClientRect();
-            let clientX = evt.clientX;
-            let clientY = evt.clientY;
+        // Fungsi untuk render saran nomor telepon
+        function renderPhoneSuggestions() {
+            const select = document.getElementById('storePhone');
+            select.innerHTML = '';
+            stores.forEach(store => {
+                const option = document.createElement('option');
+                option.value = store.phone;
+                option.innerText = store.phone;
+                select.appendChild(option);
+            });
+        }
+
+        // Fungsi untuk memilih toko dan mengisi form
+        function selectStore(index) {
+            // Ambil data toko berdasarkan index yang dipilih
+            const store = stores[index];
+
+            // Isi nilai input fields
+            document.getElementById('storeName').value = index;
+            document.getElementById('storeAddress').value = store.address;
+            document.getElementById('storePhone').value = store.phone;
+
+            updatePreview(); // Update pratinjau nota
+        }
+
+        // Helper function to build the HTML for a single item row
+        function buildItemHtml(item) {
+            const optionsHtml = availablePaymentItems.map(paymentItem => 
+                `<option value="${paymentItem.name}" ${item.name === paymentItem.name ? 'selected' : ''}>
+                    ${paymentItem.name.charAt(0).toUpperCase() + paymentItem.name.slice(1)}
+                </option>`
+            ).join('');
+
+            return `
+                <div id="item-row-${item.id}" class="flex gap-2 items-start bg-gray-50 p-3 rounded-lg border border-gray-100">
+                    <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <div>
+                            <select class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-green-500 focus:border-green-500 outline-none bg-white" onchange="updateItem(${item.id}, this.value)">
+                                ${optionsHtml}
+                            </select>
+                        </div>
+                        <div>
+                            <input type="number" id="price-${item.id}" readonly placeholder="Harga" class="w-full bg-gray-100 border border-gray-300 rounded-md p-2 text-sm focus:outline-none cursor-not-allowed" value="${item.price}">
+                        </div>
+                    </div>
+                    <button onclick="removeItem(${item.id})" class="p-2 text-red-500 hover:bg-red-50 rounded-md transition" title="Hapus Barang">
+                        <i data-lucide="trash-2" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            `;
+        }
+
+        // Fungsi Tambah Barang (dioptimalkan untuk tidak render ulang semua)
+        function addItem() {
+            const newItem = {
+                id: Date.now(),
+                name: availablePaymentItems[0].name,
+                price: availablePaymentItems[0].price
+            };
+            items.push(newItem);
+
+            const container = document.getElementById('itemsContainer');
+            const itemHtml = buildItemHtml(newItem);
+            container.insertAdjacentHTML('beforeend', itemHtml);
             
-            if (evt.changedTouches && evt.changedTouches.length > 0) {
-                clientX = evt.changedTouches[0].clientX;
-                clientY = evt.changedTouches[0].clientY;
-            } else if (evt.touches && evt.touches.length > 0) {
-                clientX = evt.touches[0].clientX;
-                clientY = evt.touches[0].clientY;
+            // Ambil elemen baris yang baru ditambahkan
+            const newRowElement = document.getElementById(`item-row-${newItem.id}`);
+            if (newRowElement) {
+                // Panggil createIcons hanya pada elemen baru untuk efisiensi
+                // dan untuk menghindari bug render ulang pada tombol lain.
+                lucide.createIcons({ root: newRowElement });
             }
 
-            return { x: clientX - rect.left, y: clientY - rect.top };
+            updatePreview(); // Update pratinjau setelah item ditambahkan
         }
 
-        function handlePointerMove(e) {
-            const pos = getMousePos(e);
-            state.mouseX = pos.x;
-            state.mouseY = pos.y;
+        // Fungsi Hapus Barang (dioptimalkan untuk hanya menghapus elemen terkait)
+        function removeItem(id) {
+            const itemElement = document.getElementById(`item-row-${id}`);
+            if (itemElement) {
+                itemElement.remove();
+            }
+
+            items = items.filter(item => item.id !== id);
+
+            if (items.length === 0) {
+                addItem();
+            } else {
+                updatePreview();
+            }
         }
 
-        function checkHitbox(pos) {
-            const cx = canvas.width / 2;
-            const cy = (canvas.height / 2) + state.uiOffset; 
-            const startY = cy - 80;
+        // Fungsi untuk update item ketika pilihan di dropdown berubah
+        function updateItem(id, selectedName) {
+            const itemToUpdate = items.find(i => i.id === id);
+            const selectedMasterItem = availablePaymentItems.find(i => i.name === selectedName);
 
-            const cardWidth = Math.min(ui.cardWidth, canvas.width - 40);
-            const inputWidth = Math.min(ui.inputWidth, cardWidth - 40);
+            if (itemToUpdate && selectedMasterItem) {
+                itemToUpdate.name = selectedMasterItem.name;
+                itemToUpdate.price = selectedMasterItem.price;
+                // Tidak perlu render ulang semua, cukup update input harga yang relevan
+                const priceInput = document.getElementById(`price-${id}`);
+                if (priceInput) {
+                    priceInput.value = selectedMasterItem.price;
+                }
+                updatePreview(); // Update pratinjau
+            }
+        }
 
-            if (pos.x > cx - inputWidth/2 && pos.x < cx + inputWidth/2 &&
-                pos.y > startY && pos.y < startY + ui.inputHeight) {
+        // Render Form Input Barang (hanya untuk inisialisasi awal)
+        function renderItemsForm() {
+            const container = document.getElementById('itemsContainer');
+            container.innerHTML = '';
+
+            items.forEach(item => {
+                container.insertAdjacentHTML('beforeend', buildItemHtml(item));
+            });
+            
+            // Panggil createIcons hanya pada container item untuk efisiensi
+            lucide.createIcons({ root: container });
+        }
+
+        // Fungsi Update Tampilan Preview Kanan
+        function updatePreview() {
+            // Update Header Info
+            const storeNameSelect = document.getElementById('storeName');
+            const selectedStoreText = storeNameSelect.options[storeNameSelect.selectedIndex]?.text;
+            document.getElementById('prevStoreName').innerText = selectedStoreText || 'NAMA TOKO';
+            document.getElementById('prevStoreAddress').innerText = document.getElementById('storeAddress').value || '-';
+            document.getElementById('prevStorePhone').innerText = `Telp: ${document.getElementById('storePhone').value || '-'}`;
+            document.getElementById('prevReceiptNumber').innerText = document.getElementById('receiptNumber').value || '-';
+            document.getElementById('prevReceiptDate').innerText = formatDate(document.getElementById('receiptDate').value);
+            document.getElementById('prevCustomerName').innerText = document.getElementById('customerName').value || '-';
+            document.getElementById('prevNotes').innerText = document.getElementById('notes').value || '';
+
+            // Update Items List
+            const tbody = document.getElementById('prevItemsList');
+            tbody.innerHTML = '';
+            let subtotal = 0;
+
+            items.forEach(item => {
+                const totalItem = item.price || 0;
+                subtotal += totalItem;
                 
-                state.activeInput = 'username';
-                hiddenInput.type = "text";
-                hiddenInput.value = state.username;
-                hiddenInput.selectionStart = hiddenInput.selectionEnd = hiddenInput.value.length;
-                hiddenInput.focus();
-                return;
-            }
-
-            if (pos.x > cx - inputWidth/2 && pos.x < cx + inputWidth/2 &&
-                pos.y > startY + 80 && pos.y < startY + 80 + ui.inputHeight) {
-                state.activeInput = 'password';
-                hiddenInput.type = "password"; 
-                hiddenInput.value = state.password;
-                hiddenInput.selectionStart = hiddenInput.selectionEnd = hiddenInput.value.length;
-                hiddenInput.focus();
-                return;
-            }
-            // ... sisa kodenya tetap sama
-
-            if (pos.x > cx - inputWidth/2 && pos.x < cx + inputWidth/2 &&
-                pos.y > startY + 170 && pos.y < startY + 170 + ui.btnHeight) {
-                processLogin();
-                return;
-            }
-
-            state.activeInput = null;
-            hiddenInput.blur();
-        }
-
-        let lastTouchTime = 0;
-
-        window.addEventListener('mousemove', handlePointerMove);
-
-        window.addEventListener('mousedown', (e) => {
-            // PERBAIKAN: Selalu cegah browser merebut fokus di laptop saat klik kanvas
-            e.preventDefault(); 
-            
-            if (Date.now() - lastTouchTime < 500) {
-                return; 
-            }
-            checkHitbox(getMousePos(e));
-        });
-
-        window.addEventListener('touchstart', handlePointerMove, {passive: true});
-
-        window.addEventListener('touchend', (e) => {
-            lastTouchTime = Date.now();
-            checkHitbox(getMousePos(e));
-        });
-
-        hiddenInput.addEventListener('input', (e) => {
-            if (state.activeInput) {
-                state[state.activeInput] = e.target.value;
-            }
-        });
-
-        window.addEventListener('keydown', (e) => {
-            if (!state.activeInput) return;
-
-            if (e.key === 'Enter') {
-                e.preventDefault(); 
-                processLogin();
-                return;
-            }
-            if (e.key === 'Tab') {
-                e.preventDefault();
-                state.activeInput = state.activeInput === 'username' ? 'password' : 'username';
-                hiddenInput.type = state.activeInput === 'password' ? 'password' : 'text';
-                hiddenInput.value = state[state.activeInput];
-                hiddenInput.focus(); 
-                return;
-            }
-        });
-
-        function processLogin() {
-            if (state.username === VALID_USERNAME && state.password === VALID_PASSWORD) {
-                state.message = "Login Berhasil! Memuat data...";
-                state.messageType = "success";
-                setTimeout(() => {
-                    window.location.href = '../nota.html';
-                }, 1500); 
-            } else {
-                state.message = "Username atau password salah!";
-                state.messageType = "error";
-            }
-            state.messageTimer = 180; 
-            state.activeInput = null;
-            hiddenInput.blur();
-        }
-
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            const bgGradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-            bgGradient.addColorStop(0, '#0f172a'); 
-            bgGradient.addColorStop(1, '#1e1b4b'); 
-            ctx.fillStyle = bgGradient;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            state.particles.forEach(p => {
-                p.x += p.vx;
-                p.y += p.vy;
-                if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
-                if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
-
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-                ctx.fillStyle = p.color;
-                ctx.fill();
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="py-1 break-words">${item.name || 'Barang'}</td>
+                    <td class="py-1 text-right">${formatRupiah(totalItem)}</td>
+                `;
+                tbody.appendChild(tr);
             });
 
-            const isMobile = window.innerWidth <= 768;
-            const targetOffset = (state.activeInput && isMobile) ? -120 : 0;
-            state.uiOffset += (targetOffset - state.uiOffset) * 0.1; 
-
-            const cx = canvas.width / 2;
-            const cy = (canvas.height / 2) + state.uiOffset; 
+            // Update Calculations
+            const discount = Number(document.getElementById('discount').value) || 0;
+            const taxRate = Number(document.getElementById('tax').value) || 0;
             
-            const cardWidth = Math.min(ui.cardWidth, canvas.width - 40); 
-            const inputWidth = Math.min(ui.inputWidth, cardWidth - 40); 
+            const totalAfterDiscount = Math.max(0, subtotal - discount);
+            const taxAmount = totalAfterDiscount * (taxRate / 100);
+            const grandTotal = totalAfterDiscount + taxAmount;
 
-            ctx.save();
-            roundRect(ctx, cx - cardWidth/2, cy - ui.cardHeight/2, cardWidth, ui.cardHeight, ui.radius);
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
-            ctx.fill();
-            ctx.lineWidth = 1;
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-            ctx.stroke();
-            ctx.restore();
+            // Render Subtotal
+            document.getElementById('prevSubtotal').innerText = formatRupiah(subtotal);
 
-            ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 28px "Segoe UI", sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText("Login Acarya", cx, cy - 140);
-
-            const startY = cy - 80;
-
-            drawInputBox(cx, startY, "Username", state.username, state.activeInput === 'username', false, inputWidth);
-            drawInputBox(cx, startY + 80, "Password", state.password, state.activeInput === 'password', true, inputWidth);
-
-            const btnY = startY + 170;
-            state.hoveredButton = (state.mouseX > cx - inputWidth/2 && state.mouseX < cx + inputWidth/2 &&
-                                   state.mouseY > btnY && state.mouseY < btnY + ui.btnHeight);
-
-            ctx.beginPath();
-            roundRect(ctx, cx - inputWidth/2, btnY, inputWidth, ui.btnHeight, 10);
-            ctx.fillStyle = state.hoveredButton ? '#ffffff' : 'rgba(255,255,255,0.9)';
-            ctx.fill();
-            
-            ctx.fillStyle = '#0f172a';
-            ctx.font = 'bold 18px "Segoe UI", sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText("Login", cx, btnY + ui.btnHeight/2);
-
-            if (state.messageTimer > 0) {
-                ctx.fillStyle = state.messageType === 'success' ? '#4ade80' : '#f87171';
-                ctx.font = '14px "Segoe UI", sans-serif';
-                ctx.textAlign = 'center';
-                ctx.fillText(state.message, cx, btnY + ui.btnHeight + 30);
-                state.messageTimer--;
-            }
-        }
-
-        function drawInputBox(cx, y, label, text, isActive, isPassword, inputWidth) {
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-            ctx.font = '14px "Segoe UI", sans-serif';
-            ctx.textAlign = 'left';
-            ctx.textBaseline = 'bottom';
-            ctx.fillText(label, cx - inputWidth/2, y - 8);
-
-            ctx.beginPath();
-            roundRect(ctx, cx - inputWidth/2, y, inputWidth, ui.inputHeight, 10);
-            ctx.fillStyle = isActive ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.05)';
-            ctx.fill();
-            
-            ctx.lineWidth = 1;
-            ctx.strokeStyle = isActive ? 'rgba(255, 255, 255, 0.6)' : 'rgba(255, 255, 255, 0.2)';
-            ctx.stroke();
-
-            ctx.fillStyle = '#ffffff';
-            ctx.font = '16px "Segoe UI", sans-serif';
-            ctx.textBaseline = 'middle';
-            
-            const displayText = isPassword ? '*'.repeat(text.length) : text;
-            
-            const textX = cx - inputWidth/2 + 15;
-            const textY = y + ui.inputHeight/2;
-            
-            if (displayText === "" && !isActive) {
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-                ctx.fillText(`Masukkan ${label.toLowerCase()}`, textX, textY);
+            // Render Diskon
+            const discContainer = document.getElementById('prevDiscountContainer');
+            if (discount > 0) {
+                discContainer.classList.remove('hidden');
+                document.getElementById('prevDiscount').innerText = `- ${formatRupiah(discount)}`;
             } else {
-                ctx.fillText(displayText, textX, textY);
+                discContainer.classList.add('hidden');
             }
 
-            if (isActive && state.cursorVisible) {
-                const textWidth = ctx.measureText(displayText).width;
-                ctx.beginPath();
-                ctx.moveTo(textX + textWidth + 2, textY - 8);
-                ctx.lineTo(textX + textWidth + 2, textY + 8);
-                ctx.strokeStyle = '#ffffff';
-                ctx.stroke();
+            // Render Pajak
+            const taxContainer = document.getElementById('prevTaxContainer');
+            if (taxRate > 0) {
+                taxContainer.classList.remove('hidden');
+                document.getElementById('prevTaxRate').innerText = taxRate;
+                document.getElementById('prevTaxAmount').innerText = formatRupiah(taxAmount);
+            } else {
+                taxContainer.classList.add('hidden');
             }
+
+            // Render Grand Total
+            document.getElementById('prevGrandTotal').innerText = formatRupiah(grandTotal);
         }
 
-        function update(timestamp) {
-            if (timestamp - state.lastCursorToggle > 500) {
-                state.cursorVisible = !state.cursorVisible;
-                state.lastCursorToggle = timestamp;
-            }
-            draw();
-            requestAnimationFrame(update);
+        // Fungsi Download PDF menggunakan html2pdf.js
+        function downloadPDF() {
+            const element = document.getElementById('receiptContent');
+            const receiptNo = document.getElementById('receiptNumber').value || 'Nota';
+            const customer = document.getElementById('customerName').value || 'Customer';
+            
+            // Konfigurasi PDF (Ukuran A5 cocok untuk struk/nota)
+            const opt = {
+                margin:       [0.5, 0.5, 0.5, 0.5], // margin in inches
+                filename:     `Nota_${receiptNo}_${customer}.pdf`.replace(/\s+/g, '_'),
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true, scrollX: 0, scrollY: 0 },
+                jsPDF:        { unit: 'in', format: 'a5', orientation: 'portrait' }
+            };
+
+            // Proses Generate
+            html2pdf().set(opt).from(element).save();
         }
 
-        requestAnimationFrame(update);
+        // Fungsi untuk menjalankan semua setup awal saat halaman dimuat
+        function inisialisasiAplikasi() {
+            // Render opsi-opsi dropdown toko
+            renderStoreOptions();
+            // Render saran untuk alamat
+            renderAddressSuggestions();
+            // Render saran untuk telepon
+            renderPhoneSuggestions();
+            // Pilih toko pertama sebagai default dan isi form
+            selectStore(0);
+            // Set tanggal hari ini sebagai default pada input tanggal
+            document.getElementById('receiptDate').valueAsDate = new Date();
+            // Render form untuk item-item yang sudah ada di awal
+            renderItemsForm();
+            // Buat nomor nota pertama kali (ini juga akan memanggil updatePreview)
+            buatNoNotaBaru();
+        }
+
+        // Inisialisasi awal
+        inisialisasiAplikasi();
     </script>
 </body>
 </html>

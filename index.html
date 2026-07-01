@@ -136,9 +136,13 @@
             const cx = canvas.width / 2;
             const cy = canvas.height / 2;
             const startY = cy - 80;
+ 
+            // Kalkulasi lebar responsif untuk UI
+            const cardWidth = Math.min(ui.cardWidth, canvas.width - 40);
+            const inputWidth = Math.min(ui.inputWidth, cardWidth - 40);
 
             // Hitbox Username
-            if (pos.x > cx - ui.inputWidth/2 && pos.x < cx + ui.inputWidth/2 &&
+            if (pos.x > cx - inputWidth/2 && pos.x < cx + inputWidth/2 &&
                 pos.y > startY && pos.y < startY + ui.inputHeight) {
                 state.activeInput = 'username';
                 hiddenInput.value = state.username;
@@ -148,7 +152,7 @@
             }
 
             // Hitbox Password
-            if (pos.x > cx - ui.inputWidth/2 && pos.x < cx + ui.inputWidth/2 &&
+            if (pos.x > cx - inputWidth/2 && pos.x < cx + inputWidth/2 &&
                 pos.y > startY + 80 && pos.y < startY + 80 + ui.inputHeight) {
                 state.activeInput = 'password';
                 hiddenInput.value = state.password;
@@ -158,7 +162,7 @@
             }
 
             // Hitbox Tombol Login
-            if (pos.x > cx - ui.inputWidth/2 && pos.x < cx + ui.inputWidth/2 &&
+            if (pos.x > cx - inputWidth/2 && pos.x < cx + inputWidth/2 &&
                 pos.y > startY + 170 && pos.y < startY + 170 + ui.btnHeight) {
                 processLogin();
                 return;
@@ -262,9 +266,13 @@
             const cx = canvas.width / 2;
             const cy = canvas.height / 2;
             
+            // Membuat UI menjadi responsif
+            const cardWidth = Math.min(ui.cardWidth, canvas.width - 40); // Memberi margin 20px
+            const inputWidth = Math.min(ui.inputWidth, cardWidth - 40); // Memberi margin 20px di dalam kartu
+
             // 4. Menggambar Kartu Glassmorphism
             ctx.save();
-            roundRect(ctx, cx - ui.cardWidth/2, cy - ui.cardHeight/2, ui.cardWidth, ui.cardHeight, ui.radius);
+            roundRect(ctx, cx - cardWidth/2, cy - ui.cardHeight/2, cardWidth, ui.cardHeight, ui.radius);
             // Warna kaca
             ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
             ctx.fill();
@@ -283,19 +291,19 @@
             const startY = cy - 80;
 
             // 6. Menggambar Input Username
-            drawInputBox(cx, startY, "Username", state.username, state.activeInput === 'username', false);
+            drawInputBox(cx, startY, "Username", state.username, state.activeInput === 'username', false, inputWidth);
 
             // 7. Menggambar Input Password
-            drawInputBox(cx, startY + 80, "Password", state.password, state.activeInput === 'password', true);
+            drawInputBox(cx, startY + 80, "Password", state.password, state.activeInput === 'password', true, inputWidth);
 
             // 8. Cek status hover tombol
             const btnY = startY + 170;
-            state.hoveredButton = (state.mouseX > cx - ui.inputWidth/2 && state.mouseX < cx + ui.inputWidth/2 &&
+            state.hoveredButton = (state.mouseX > cx - inputWidth/2 && state.mouseX < cx + inputWidth/2 &&
                                    state.mouseY > btnY && state.mouseY < btnY + ui.btnHeight);
 
             // 9. Menggambar Tombol Login
             ctx.beginPath();
-            roundRect(ctx, cx - ui.inputWidth/2, btnY, ui.inputWidth, ui.btnHeight, 10);
+            roundRect(ctx, cx - inputWidth/2, btnY, inputWidth, ui.btnHeight, 10);
             ctx.fillStyle = state.hoveredButton ? '#ffffff' : 'rgba(255,255,255,0.9)';
             ctx.fill();
             
@@ -315,17 +323,17 @@
             }
         }
 
-        function drawInputBox(cx, y, label, text, isActive, isPassword) {
+        function drawInputBox(cx, y, label, text, isActive, isPassword, inputWidth) {
             // Label
             ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
             ctx.font = '14px "Segoe UI", sans-serif';
             ctx.textAlign = 'left';
             ctx.textBaseline = 'bottom';
-            ctx.fillText(label, cx - ui.inputWidth/2, y - 8);
+            ctx.fillText(label, cx - inputWidth/2, y - 8);
 
             // Kotak Input
             ctx.beginPath();
-            roundRect(ctx, cx - ui.inputWidth/2, y, ui.inputWidth, ui.inputHeight, 10);
+            roundRect(ctx, cx - inputWidth/2, y, inputWidth, ui.inputHeight, 10);
             ctx.fillStyle = isActive ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.05)';
             ctx.fill();
             
@@ -341,7 +349,7 @@
             // Masking text jika itu password
             const displayText = isPassword ? '*'.repeat(text.length) : text;
             
-            const textX = cx - ui.inputWidth/2 + 15;
+            const textX = cx - inputWidth/2 + 15;
             const textY = y + ui.inputHeight/2;
             
             if (displayText === "" && !isActive) {

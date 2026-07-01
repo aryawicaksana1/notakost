@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Canvas Login</title>
+    <title>Canvas Login Acarya</title>
     <style>
         * {
             margin: 0;
@@ -13,8 +13,8 @@
         body, html {
             width: 100%;
             height: 100%;
-            overflow: hidden; /* Mencegah scrolling */
-            background-color: #0f172a; /* Warna cadangan */
+            overflow: hidden; 
+            background-color: #0f172a; 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         canvas {
@@ -22,18 +22,20 @@
             width: 100vw;
             height: 100vh;
         }
-        /* Input tersembunyi ini hanya digunakan untuk memancing keyboard muncul di perangkat mobile */
+        /* PERBAIKAN: Jangan taruh di -1000px agar browser mobile mau fokus */
         #hidden-input {
             position: absolute;
             opacity: 0;
-            top: -1000px;
-            left: -1000px;
+            top: 50%;
+            left: 50%;
+            width: 1px;
+            height: 1px;
+            z-index: -1;
         }
     </style>
 </head>
 <body>
 
-    <!-- Canvas utama tempat semua UI digambar -->
     <canvas id="gameCanvas"></canvas>
     <input type="text" id="hidden-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
 
@@ -42,7 +44,6 @@
         const ctx = canvas.getContext('2d');
         const hiddenInput = document.getElementById('hidden-input');
 
-        // Mengatur resolusi canvas agar tajam (menangani devicePixelRatio)
         function resize() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
@@ -50,14 +51,13 @@
         window.addEventListener('resize', resize);
         resize();
 
-        // Database Simulasi
         const VALID_USERNAME = "bosacarya";
         const VALID_PASSWORD = "bos123";
 
         const state = {
             username: "",
             password: "",
-            activeInput: null, // 'username' atau 'password'
+            activeInput: null, 
             cursorVisible: true,
             lastCursorToggle: 0,
             hoveredButton: false,
@@ -66,10 +66,10 @@
             messageTimer: 0,
             mouseX: 0,
             mouseY: 0,
+            uiOffset: 0, // PERBAIKAN: Variabel untuk menggeser UI ke atas saat keyboard muncul
             particles: []
         };
 
-        // Konfigurasi tata letak UI (Card & Inputs)
         const ui = {
             cardWidth: 380,
             cardHeight: 460,
@@ -79,7 +79,6 @@
             radius: 15
         };
 
-        // Inisialisasi partikel untuk background
         for (let i = 0; i < 15; i++) {
             state.particles.push({
                 x: Math.random() * window.innerWidth,
@@ -91,7 +90,6 @@
             });
         }
 
-        // Fungsi pembantu untuk menggambar kotak dengan sudut melengkung
         function roundRect(ctx, x, y, width, height, radius) {
             ctx.beginPath();
             ctx.moveTo(x + radius, y);
@@ -111,16 +109,15 @@
             let clientX = evt.clientX;
             let clientY = evt.clientY;
             
-            // Handle touch events
-            if (evt.touches && evt.touches.length > 0) {
+            if (evt.changedTouches && evt.changedTouches.length > 0) {
+                clientX = evt.changedTouches[0].clientX;
+                clientY = evt.changedTouches[0].clientY;
+            } else if (evt.touches && evt.touches.length > 0) {
                 clientX = evt.touches[0].clientX;
                 clientY = evt.touches[0].clientY;
             }
 
-            return {
-                x: clientX - rect.left,
-                y: clientY - rect.top
-            };
+            return { x: clientX - rect.left, y: clientY - rect.top };
         }
 
         function handlePointerMove(e) {
@@ -129,19 +126,17 @@
             state.mouseY = pos.y;
         }
 
-        function handlePointerDown(e) {
+        // PERBAIKAN: Hitbox sekarang dinamis mengikuti uiOffset
+        function handleAction(e) {
             const pos = getMousePos(e);
             
-            // Hitung koordinat elemen relatif terhadap tengah layar
             const cx = canvas.width / 2;
-            const cy = canvas.height / 2;
+            const cy = (canvas.height / 2) + state.uiOffset; // Gunakan offset
             const startY = cy - 80;
  
-            // Kalkulasi lebar responsif untuk UI
             const cardWidth = Math.min(ui.cardWidth, canvas.width - 40);
             const inputWidth = Math.min(ui.inputWidth, cardWidth - 40);
 
-            // Hitbox Username
             if (pos.x > cx - inputWidth/2 && pos.x < cx + inputWidth/2 &&
                 pos.y > startY && pos.y < startY + ui.inputHeight) {
                 state.activeInput = 'username';
@@ -151,65 +146,58 @@
                 return;
             }
 
-            // Hitbox Password
             if (pos.x > cx - inputWidth/2 && pos.x < cx + inputWidth/2 &&
                 pos.y > startY + 80 && pos.y < startY + 80 + ui.inputHeight) {
                 state.activeInput = 'password';
                 hiddenInput.value = state.password;
-                hiddenInput.type = "password"; // Mencegah auto-capitalize di keyboard HP
+                hiddenInput.type = "password"; 
                 hiddenInput.focus();
                 return;
             }
 
-            // Hitbox Tombol Login
             if (pos.x > cx - inputWidth/2 && pos.x < cx + inputWidth/2 &&
                 pos.y > startY + 170 && pos.y < startY + 170 + ui.btnHeight) {
                 processLogin();
                 return;
             }
 
-            // Klik di luar area input
             state.activeInput = null;
             hiddenInput.blur();
         }
 
         window.addEventListener('mousemove', handlePointerMove);
-        window.addEventListener('mousedown', handlePointerDown);
-        window.addEventListener('touchstart', (e) => {
-            e.preventDefault(); // Mencegah perilaku default browser (seperti scroll)
-            handlePointerMove(e);
-            handlePointerDown(e);
-        }, {passive: false});
-
+        window.addEventListener('mousedown', handleAction);
         
-        // Sinkronisasi input tersembunyi (untuk mobile keyboard)
+        // PERBAIKAN: Pisahkan touchstart dan touchend, hapus preventDefault
+        window.addEventListener('touchstart', handlePointerMove, {passive: true});
+        window.addEventListener('touchend', (e) => {
+            // Memberikan sedikit delay agar browser mobile memproses event sentuhan secara native
+            setTimeout(() => handleAction(e), 50);
+        });
+
         hiddenInput.addEventListener('input', (e) => {
             if (state.activeInput) {
                 state[state.activeInput] = e.target.value;
             }
         });
 
-        // Menangani keyboard desktop
         window.addEventListener('keydown', (e) => {
             if (!state.activeInput) return;
 
-            // Jika Enter ditekan, proses login
             if (e.key === 'Enter') {
-                e.preventDefault(); // Mencegah aksi default browser
+                e.preventDefault(); 
                 processLogin();
                 return;
             }
-            // Jika Tab ditekan, pindah input
             if (e.key === 'Tab') {
                 e.preventDefault();
                 state.activeInput = state.activeInput === 'username' ? 'password' : 'username';
                 hiddenInput.value = state[state.activeInput];
-                hiddenInput.focus(); // Jaga fokus untuk keyboard
+                hiddenInput.type = state.activeInput === 'password' ? 'password' : 'text';
+                hiddenInput.focus(); 
                 return;
             }
 
-            // Keyboard desktop yang tidak tertangkap oleh hidden input
-            // (Kadang event keydown lebih cepat/diandalkan untuk desktop)
             if (e.key === 'Backspace') {
                 state[state.activeInput] = state[state.activeInput].slice(0, -1);
                 hiddenInput.value = state[state.activeInput];
@@ -223,36 +211,30 @@
             if (state.username === VALID_USERNAME && state.password === VALID_PASSWORD) {
                 state.message = "Login Berhasil! Memuat data...";
                 state.messageType = "success";
-                // Setelah pesan sukses tampil, alihkan halaman
                 setTimeout(() => {
-                    // Arahkan ke file index.html di direktori parent
                     window.location.href = '../nota.html';
-                }, 1500); // Tunggu 1.5 detik untuk memberi waktu user membaca pesan
+                }, 1500); 
             } else {
                 state.message = "Username atau password salah!";
                 state.messageType = "error";
             }
-            state.messageTimer = 180; // Tampilkan selama ~3 detik (60fps * 3)
+            state.messageTimer = 180; 
             state.activeInput = null;
             hiddenInput.blur();
         }
 
         function draw() {
-            // Bersihkan frame
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // 1. Gambar Latar Belakang Gradien Utama
             const bgGradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-            bgGradient.addColorStop(0, '#0f172a'); // Gelap biru
-            bgGradient.addColorStop(1, '#1e1b4b'); // Gelap ungu
+            bgGradient.addColorStop(0, '#0f172a'); 
+            bgGradient.addColorStop(1, '#1e1b4b'); 
             ctx.fillStyle = bgGradient;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // 2. Animasi Partikel Latar Belakang
             state.particles.forEach(p => {
                 p.x += p.vx;
                 p.y += p.vy;
-                // Pantulkan dari tepi
                 if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
                 if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
 
@@ -262,27 +244,27 @@
                 ctx.fill();
             });
 
-            // 3. Persiapan Hitungan Posisi Tengah
-            const cx = canvas.width / 2;
-            const cy = canvas.height / 2;
-            
-            // Membuat UI menjadi responsif
-            const cardWidth = Math.min(ui.cardWidth, canvas.width - 40); // Memberi margin 20px
-            const inputWidth = Math.min(ui.inputWidth, cardWidth - 40); // Memberi margin 20px di dalam kartu
+            // PERBAIKAN: Logika Animasi Geser ke Atas
+            const isMobile = window.innerWidth <= 768;
+            // Jika di mobile dan ada input aktif, geser UI ke atas sejauh 120px
+            const targetOffset = (state.activeInput && isMobile) ? -120 : 0;
+            state.uiOffset += (targetOffset - state.uiOffset) * 0.1; // Efek smooth transition
 
-            // 4. Menggambar Kartu Glassmorphism
+            const cx = canvas.width / 2;
+            const cy = (canvas.height / 2) + state.uiOffset; 
+            
+            const cardWidth = Math.min(ui.cardWidth, canvas.width - 40); 
+            const inputWidth = Math.min(ui.inputWidth, cardWidth - 40); 
+
             ctx.save();
             roundRect(ctx, cx - cardWidth/2, cy - ui.cardHeight/2, cardWidth, ui.cardHeight, ui.radius);
-            // Warna kaca
             ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
             ctx.fill();
-            // Border tipis
             ctx.lineWidth = 1;
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
             ctx.stroke();
             ctx.restore();
 
-            // 5. Menggambar Judul
             ctx.fillStyle = '#ffffff';
             ctx.font = 'bold 28px "Segoe UI", sans-serif';
             ctx.textAlign = 'center';
@@ -290,18 +272,13 @@
 
             const startY = cy - 80;
 
-            // 6. Menggambar Input Username
             drawInputBox(cx, startY, "Username", state.username, state.activeInput === 'username', false, inputWidth);
-
-            // 7. Menggambar Input Password
             drawInputBox(cx, startY + 80, "Password", state.password, state.activeInput === 'password', true, inputWidth);
 
-            // 8. Cek status hover tombol
             const btnY = startY + 170;
             state.hoveredButton = (state.mouseX > cx - inputWidth/2 && state.mouseX < cx + inputWidth/2 &&
                                    state.mouseY > btnY && state.mouseY < btnY + ui.btnHeight);
 
-            // 9. Menggambar Tombol Login
             ctx.beginPath();
             roundRect(ctx, cx - inputWidth/2, btnY, inputWidth, ui.btnHeight, 10);
             ctx.fillStyle = state.hoveredButton ? '#ffffff' : 'rgba(255,255,255,0.9)';
@@ -313,7 +290,6 @@
             ctx.textBaseline = 'middle';
             ctx.fillText("Login", cx, btnY + ui.btnHeight/2);
 
-            // 10. Menggambar Pesan (Notifikasi)
             if (state.messageTimer > 0) {
                 ctx.fillStyle = state.messageType === 'success' ? '#4ade80' : '#f87171';
                 ctx.font = '14px "Segoe UI", sans-serif';
@@ -324,14 +300,12 @@
         }
 
         function drawInputBox(cx, y, label, text, isActive, isPassword, inputWidth) {
-            // Label
             ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
             ctx.font = '14px "Segoe UI", sans-serif';
             ctx.textAlign = 'left';
             ctx.textBaseline = 'bottom';
             ctx.fillText(label, cx - inputWidth/2, y - 8);
 
-            // Kotak Input
             ctx.beginPath();
             roundRect(ctx, cx - inputWidth/2, y, inputWidth, ui.inputHeight, 10);
             ctx.fillStyle = isActive ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.05)';
@@ -341,12 +315,10 @@
             ctx.strokeStyle = isActive ? 'rgba(255, 255, 255, 0.6)' : 'rgba(255, 255, 255, 0.2)';
             ctx.stroke();
 
-            // Render Teks
             ctx.fillStyle = '#ffffff';
             ctx.font = '16px "Segoe UI", sans-serif';
             ctx.textBaseline = 'middle';
             
-            // Masking text jika itu password
             const displayText = isPassword ? '*'.repeat(text.length) : text;
             
             const textX = cx - inputWidth/2 + 15;
@@ -359,7 +331,6 @@
                 ctx.fillText(displayText, textX, textY);
             }
 
-            // Render Kursor Kedip jika aktif
             if (isActive && state.cursorVisible) {
                 const textWidth = ctx.measureText(displayText).width;
                 ctx.beginPath();
@@ -371,20 +342,14 @@
         }
 
         function update(timestamp) {
-            // Toggle kursor berkedip setiap 500ms
             if (timestamp - state.lastCursorToggle > 500) {
                 state.cursorVisible = !state.cursorVisible;
                 state.lastCursorToggle = timestamp;
             }
-
-            // Panggil fungsi render
             draw();
-
-            // Minta frame berikutnya
             requestAnimationFrame(update);
         }
 
-        // Mulai animasi
         requestAnimationFrame(update);
     </script>
 </body>

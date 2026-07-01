@@ -142,27 +142,20 @@
             if (pos.x > cx - inputWidth/2 && pos.x < cx + inputWidth/2 &&
                 pos.y > startY && pos.y < startY + ui.inputHeight) {
                 
-                if (state.activeInput !== 'username') {
-                    state.activeInput = 'username';
-                    hiddenInput.type = "text";
-                    hiddenInput.value = state.username;
-                    // TAMBAHAN: Geser kursor ke paling akhir
-                    hiddenInput.selectionStart = hiddenInput.selectionEnd = hiddenInput.value.length;
-                }
+                state.activeInput = 'username';
+                hiddenInput.type = "text";
+                hiddenInput.value = state.username;
+                hiddenInput.selectionStart = hiddenInput.selectionEnd = hiddenInput.value.length;
                 hiddenInput.focus();
                 return;
             }
 
             if (pos.x > cx - inputWidth/2 && pos.x < cx + inputWidth/2 &&
                 pos.y > startY + 80 && pos.y < startY + 80 + ui.inputHeight) {
-                
-                if (state.activeInput !== 'password') {
-                    state.activeInput = 'password';
-                    hiddenInput.type = "password"; 
-                    hiddenInput.value = state.password;
-                    // TAMBAHAN: Geser kursor ke paling akhir
-                    hiddenInput.selectionStart = hiddenInput.selectionEnd = hiddenInput.value.length;
-                }
+                state.activeInput = 'password';
+                hiddenInput.type = "password"; 
+                hiddenInput.value = state.password;
+                hiddenInput.selectionStart = hiddenInput.selectionEnd = hiddenInput.value.length;
                 hiddenInput.focus();
                 return;
             }

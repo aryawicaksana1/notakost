@@ -189,6 +189,9 @@ hiddenInput.addEventListener('input', (e) => {
 });
 
 window.addEventListener('keydown', (e) => {
+    // Hanya tangani 'Enter' dan 'Tab'.
+    // Pengetikan karakter, backspace, dll, akan ditangani secara otomatis
+    // oleh browser dan event 'input' pada hiddenInput.
     if (!state.activeInput) return;
 
     if (e.key === 'Enter') {
@@ -203,14 +206,6 @@ window.addEventListener('keydown', (e) => {
         hiddenInput.type = state.activeInput === 'password' ? 'password' : 'text';
         hiddenInput.focus(); 
         return;
-    }
-
-    if (e.key === 'Backspace') {
-        state[state.activeInput] = state[state.activeInput].slice(0, -1);
-        hiddenInput.value = state[state.activeInput];
-    } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
-        state[state.activeInput] += e.key;
-        hiddenInput.value = state[state.activeInput];
     }
 });
 

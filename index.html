@@ -136,18 +136,26 @@
 
             if (pos.x > cx - inputWidth/2 && pos.x < cx + inputWidth/2 &&
                 pos.y > startY && pos.y < startY + ui.inputHeight) {
-                state.activeInput = 'username';
-                hiddenInput.value = state.username;
-                hiddenInput.type = "text";
+                
+                // PERBAIKAN: Hanya update nilai jika kolom belum aktif
+                // Mencegah kursor melompat ke awal kata di HP
+                if (state.activeInput !== 'username') {
+                    state.activeInput = 'username';
+                    hiddenInput.type = "text";
+                    hiddenInput.value = state.username;
+                }
                 hiddenInput.focus();
                 return;
             }
 
             if (pos.x > cx - inputWidth/2 && pos.x < cx + inputWidth/2 &&
                 pos.y > startY + 80 && pos.y < startY + 80 + ui.inputHeight) {
-                state.activeInput = 'password';
-                hiddenInput.value = state.password;
-                hiddenInput.type = "password"; 
+                
+                if (state.activeInput !== 'password') {
+                    state.activeInput = 'password';
+                    hiddenInput.type = "password"; 
+                    hiddenInput.value = state.password;
+                }
                 hiddenInput.focus();
                 return;
             }
@@ -167,9 +175,10 @@
         window.addEventListener('mousemove', handlePointerMove);
 
         window.addEventListener('mousedown', (e) => {
-            // PERBAIKAN 1: Hentikan browser mencabut fokus dari input tersembunyi
+            // PERBAIKAN: Selalu cegah browser merebut fokus di laptop saat klik kanvas
+            e.preventDefault(); 
+            
             if (Date.now() - lastTouchTime < 500) {
-                e.preventDefault(); // Kunci utamanya ada di sini!
                 return; 
             }
             checkHitbox(getMousePos(e));
@@ -182,8 +191,6 @@
             checkHitbox(getMousePos(e));
         });
 
-        // PERBAIKAN 2: Tangani ketikan sepenuhnya lewat event 'input' 
-        // Ini memastikan keyboard virtual HP, swipe typing, auto-correct, dan paste berfungsi normal
         hiddenInput.addEventListener('input', (e) => {
             if (state.activeInput) {
                 state[state.activeInput] = e.target.value;
@@ -193,7 +200,6 @@
         window.addEventListener('keydown', (e) => {
             if (!state.activeInput) return;
 
-            // Event keydown sekarang HANYA digunakan untuk navigasi (Enter & Tab)
             if (e.key === 'Enter') {
                 e.preventDefault(); 
                 processLogin();
@@ -202,8 +208,8 @@
             if (e.key === 'Tab') {
                 e.preventDefault();
                 state.activeInput = state.activeInput === 'username' ? 'password' : 'username';
-                hiddenInput.value = state[state.activeInput];
                 hiddenInput.type = state.activeInput === 'password' ? 'password' : 'text';
+                hiddenInput.value = state[state.activeInput];
                 hiddenInput.focus(); 
                 return;
             }
